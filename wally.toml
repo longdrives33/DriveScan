@@ -1,0 +1,10 @@
+[package]
+name = "longdrives33/drivescan"
+description = "Free alternative to codify"
+version = "0.1.0"
+license = "MIT"
+authors = ["LongDrives!!"]
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+
+[dependencies]
