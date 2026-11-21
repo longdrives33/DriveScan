@@ -1,4 +1,4 @@
-local purescan = {}
+local drivescan = {}
 
 export type Mode = "Pure" | "Vide" 
 local maxchar = 16000
@@ -207,12 +207,12 @@ local function genVide(root:Instance): string
     return table.concat(lines, "\n")
 end
 
-function purescan.Scan(Root:ScreenGui, Type:Mode):string
+function drivescan.Scan(Root:ScreenGui, Type:Mode):string
     local output = Type == "Pure" and genPure(Root) or genVide(Root)
     return output
 end
 
-function purescan.Print(Value:string, Size:number?):()
+function drivescan.Print(Value:string, Size:number?):()
     local s = Size or maxchar
     if s <= 0 then s = maxchar end
     local waitNum = 0
@@ -223,11 +223,11 @@ function purescan.Print(Value:string, Size:number?):()
     end
 end
 
-function purescan.Cache()
+function drivescan.Cache():()
     for _, ins in cache do
         ins:Destroy()
     end
     table.clear(cache)
 end
 
-return purescan
+return drivescan
