@@ -16,12 +16,12 @@ Returns a string, which is basically generated code in luau or vide.
 * `Root`: Given ScreenGui to analyze all the structure inside.
 * `Type`: Output setting to generate code in luau(Type == "Pure") or vide(Type == "Vide").
 
-#### `DriveScan.Print(Value: string, Size: number?):()
+#### `DriveScan.Print(Value: string, Size: number?):()`
 Prints the text through a bunch of prints if exceeded the limit.
 * `Value`: Given string. Usually used in pair with DriveScan.Scan.
 * `Size`: Given symbol limit. 16.000 by default.
 
-#### `DriveScan.Cache():()
+#### `DriveScan.Cache():()`
 Clears cached instances. You probably wouldn't want to use it unless you know what you're doing.
 
 **Example:**
