@@ -1,23 +1,23 @@
 local drivescan = {}
 
-export type Mode = "Pure" | "Vide" 
+export type Mode = "Pure" | "Vide" | "Flux"
 local maxchar = 16000
 
 local pMap:{[string]:{string}} = {
     ["Base"] = {
-        "Name", "AnchorPoint", "Position", "Size", "SizeConstraint", "BackgroundColor3", "BackgroundTransparency", "BorderSizePixel", "ClipsDescendants", "LayoutOrder", "Visible", "ZIndex", "AutomaticSize", "Rotation"
+        "Name", "AnchorPoint", "Position", "Size", "SizeConstraint", "BackgroundColor3", "BackgroundTransparency", "BorderSizePixel", "ClipsDescendants", "LayoutOrder", "Visible", "ZIndex", "AutomaticSize", "Rotation", "Active", "Interactable", "BorderColor3"
     },
     ["Text"] = {
-        "FontFace", "Text", "TextColor3", "TextSize", "TextScaled", "TextWrapped", "TextTransparency", "TextXAlignment", "TextYAlignment", "RichText", "MaxVisibleGraphemes"
+        "FontFace", "Text", "TextColor3", "TextSize", "TextScaled", "TextWrapped", "TextTransparency", "TextXAlignment", "TextYAlignment", "RichText", "MaxVisibleGraphemes", "LineHeight", "TextTruncate"
     },
     ["Image"] = {
-        "Image", "ImageColor3", "ImageTransparency", "ScaleType", "SliceCenter", "SliceScale", "TileSize", "ResampleMode"
+        "Image", "ImageColor3", "ImageTransparency", "ScaleType", "SliceCenter", "SliceScale", "TileSize", "ResampleMode", "ImageRectOffset", "ImageRectSize"
     },
     ["ScrollingFrame"] = {
-        "CanvasSize", "AutomaticCanvasSize", "ScrollBarThickness", "ScrollBarImageColor3", "ScrollBarImageTransparency", "ScrollingDirection"
+        "CanvasSize", "AutomaticCanvasSize", "ScrollBarThickness", "ScrollBarImageColor3", "ScrollBarImageTransparency", "ScrollingDirection", "ScrollingEnabled"
     },
     ["UIListLayout"] = {
-        "FillDirection", "HorizontalAlignment", "VerticalAlignment", "Padding", "SortOrder", "StartCorner"
+        "FillDirection", "HorizontalAlignment", "VerticalAlignment", "Padding", "SortOrder", "StartCorner", "Wraps", "HorizontalFlex", "VerticalFlex", "ItemLineAlignment"
     },
     ["UIGridLayout"] = {
         "CellPadding", "CellSize", "FillDirection", "FillDirectionMaxCells", "HorizontalAlignment", "VerticalAlignment", "SortOrder", "StartCorner"
@@ -27,7 +27,10 @@ local pMap:{[string]:{string}} = {
     ["UIPadding"] = {"PaddingTop", "PaddingBottom", "PaddingLeft", "PaddingRight"},
     ["UIScale"] = {"Scale"},
     ["UIGradient"] = {"Color", "Offset", "Rotation", "Transparency"},
-    ["UIAspectRatioConstraint"] = {"AspectRatio", "AspectType", "DominantAxis"}
+    ["UIAspectRatioConstraint"] = {"AspectRatio", "AspectType", "DominantAxis"},
+    ["UISizeConstraint"] = {"MinSize", "MaxSize"},
+    ["UIFlexItem"] = {"FlexMode", "GrowRatio", "ShrinkRatio", "ItemLineAlignment"},
+    ["UIShadow"] = {"BlurRadius", "Color", "Enabled", "Inset", "Mode", "Offset", "ShowBehindParent", "Spread", "Transparency"}
 }
 local cMap:{[string]:{string}} = {
     ["ScreenGui"] = {"Name", "Enabled", "ResetOnSpawn", "ZIndexBehavior", "IgnoreGuiInset", "DisplayOrder"},
@@ -47,7 +50,10 @@ local cMap:{[string]:{string}} = {
     ["UIGridLayout"] = {"UIGridLayout"},
     ["UIAspectRatioConstraint"] = {"UIAspectRatioConstraint"},
     ["UIScale"] = {"UIScale"},
-    ["UIGradient"] = {"UIGradient"}
+    ["UIGradient"] = {"UIGradient"},
+    ["UISizeConstraint"] = {"UISizeConstraint"},
+    ["UIFlexItem"] = {"UIFlexItem"},
+    ["UIShadow"] = {"UIShadow"}
 }
 local cache = {}
 
@@ -138,8 +144,13 @@ local function getName(n:string, used:{[string]:number}): string
     return clean
 end
 
-local function genPure(root:Instance): string
+local function genPure(root:Instance, gen:boolean): string
     local lines:{string} = {}
+
+    if gen then
+        table.insert(lines, "Have fun with scripting!")
+        table.insert(lines, "")
+    end
     local used:{[string]:number} = {}
 
     local function visit(ins:Instance, parvar:string?)
@@ -164,11 +175,14 @@ local function genPure(root:Instance): string
     return table.concat(lines, "\n")
 end
 
-local function genVide(root:Instance): string
-    local lines = {
-        "local Vide = require(???) --your path here!",
-        "local create = Vide.create --btw everyone uses upvalues js for vide, but you can do it everywhere!(yep idk why am i shitposting sry)"
-    }
+local function genVide(root:Instance, gen:boolean): string
+    local lines:{string} = {}
+
+    if gen then
+        table.insert(lines, "local Vide = require(???) --your path here!")
+        table.insert(lines, "local create = Vide.create --btw everyone uses upvalues js for vide, but you can do it everywhere!(yep idk why am i shitposting sry)")
+        table.insert(lines, "")
+    end
     local function visit(ins:Instance, indent:number):string?
         local cn = ins.ClassName
         if not cMap[cn] then return nil end
@@ -192,7 +206,7 @@ local function genVide(root:Instance): string
                 table.insert(block, code .. ",")
             end
         end
-        table.insert(block, string.format("%s}", ind))
+        table.insert(block, `{ind}}`)
         return table.concat(block, "\n")
     end
 
@@ -207,8 +221,79 @@ local function genVide(root:Instance): string
     return table.concat(lines, "\n")
 end
 
+local function genFlux(root:Instance, gen:boolean):string
+    local lines:{string} = {}
+
+    if gen then
+        table.insert(lines, "local Flux = require(???) --your path here!!")
+        table.insert(lines, "local new = Flux.new --another fun fact, the module creator's birthday is soon:D I'm turning 15 this end of January")
+        table.insert(lines, "")
+    end
+    local function visit(ins: Instance, indent: number):string?
+        local cn = ins.ClassName
+        if not cMap[cn] then return nil end
+
+        local ind = string.rep("\t", indent)
+        local inner = string.rep("\t", indent + 1)
+        local block:{string} = {}
+
+        table.insert(block, string.format("%snew %q {", ind, cn))
+
+        local props = getChangedProps(ins)
+        for _, prop in props do
+            table.insert(block, `{inner}{prop.name} = {prop.value}`)
+        end
+
+        local children = ins:GetChildren()
+        for _, child in children do
+            local code = visit(child, indent + 1)
+            if code then
+                table.insert(block, code .. ",")
+            end
+        end
+        
+        table.insert(block, `{ind}}`)
+        return table.concat(block, "\n")
+    end
+    local rootCode = visit(root, 1)
+    if rootCode then
+        table.insert(lines, "local function Generate()")
+        table.insert(lines, "\treturn" .. rootCode:sub(2))
+        table.insert(lines, "end")
+        table.insert(lines, "")
+        table.insert(lines, "return Generate")
+    end
+
+    return table.concat(lines, "\n")
+end
+
+local actions:{} = {
+    ["Pure"] = genPure,
+    ["Vide"] = genVide,
+    ["Flux"] = genFlux
+}
+
 function drivescan.Scan(Root:ScreenGui, Type:Mode):string
-    local output = Type == "Pure" and genPure(Root) or genVide(Root)
+    local output:string
+    output = actions[Type](Root, true)
+    return output
+end
+
+function drivescan.Analyze(Root:Folder, Type:Mode):string
+    local lines:{string} = {}
+    local output:string
+    local roots:{ScreenGui} = {}
+    local gen = true
+    for _, v in Root:GetChildren() do
+        if v:IsA("ScreenGui") then
+            table.insert(roots, v)
+        end
+    end
+    for _, v in roots do
+        table.insert(lines, actions[Type](v, gen))
+        gen = false
+    end
+    output = table.concat(lines, "\n")
     return output
 end
 
