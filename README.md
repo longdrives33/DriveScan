@@ -6,7 +6,7 @@ DriveScan is a free alternative to Codify, however right now it only supports pu
 
 ### Types
 
-#### `Mode: "Pure" | "Vide"`
+#### `Mode: "Pure" | "Vide" | "Flux"`
 Used in Scan() to output specific syntax.
 
 ### Methods
