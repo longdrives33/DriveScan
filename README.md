@@ -14,7 +14,12 @@ Used in Scan() to output specific syntax.
 #### `DriveScan.Scan(Root: ScreenGui, Type: Mode): string`
 Returns a string, which is basically generated code in luau or vide.
 * `Root`: Given ScreenGui to analyze all the structure inside.
-* `Type`: Output setting to generate code in luau(Type == "Pure") or vide(Type == "Vide").
+* `Type`: Output setting to generate code in luau, vide or flux.
+
+#### `DriveScan.Analyze(Root: Folder, Type: Mode): string`
+Analyzes given folder and applies Scan() for every found ScreenGui in it.
+* `Root`: Given Folder to analyze all the structure inside.
+* `Type`: Output setting to generate code in luau, vide or flux.
 
 #### `DriveScan.Print(Value: string, Size: number?):()`
 Prints the text through a bunch of prints if exceeded the limit.
