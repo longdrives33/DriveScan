@@ -29,6 +29,9 @@ Prints the text through a bunch of prints if exceeded the limit.
 #### `DriveScan.Cache():()`
 Clears cached instances. You probably wouldn't want to use it unless you know what you're doing.
 
+#### `DrivenScan.showProgress: boolean`
+If it is turned on, prints every progress' step. Turned off by default.
+
 **Example:**
 ```
 local ds = require(game:GetService("ReplicatedStorage").Packages.drivescan)
