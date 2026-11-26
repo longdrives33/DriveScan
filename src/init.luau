@@ -1,6 +1,6 @@
 local drivescan = {}
 
-export type Mode = "Pure" | "Vide" | "Flux"
+export type Mode = "Pure" | "Vide" | "Flux" | "React" | "Fusion"
 local maxchar = 16000
 local showProgress = false
 
@@ -343,10 +343,144 @@ local function genFlux(root:Instance, gen:boolean):string
     return table.concat(lines, "\n")
 end
 
+local function genFus(root:Instance, gen:boolean):string
+    local lines:{string} = {}
+    mprint("Starting fusion..")
+
+    if gen then
+        mprint("Preparing..")
+        table.insert(lines, "local Fusion = require(???) --your path here!!")
+        table.insert(lines, "local Children = Fusion.Children --I don't have any fun facts:(")
+    end
+    local function visit(ins:Instance, indent:number):string?
+        local cn = ins.ClassName
+        mprint(`Scanning {ins.Name}/{cn}..`)
+        if not cMap[cn] then
+            mprint(`{cn} type of UI isn't supported yet:(`)
+            return nil
+        end
+
+        local ind = string.rep("\t", indent)
+        local inner = string.rep("\t", indent + 1)
+        local block:{string} = {}
+		table.insert(block, string.format("%sscope:New %q {", ind, cn))
+
+        local props = getChangedProps(ins)
+        for _, prop in props do
+            table.insert(block, `{inner}{prop.name} = {prop.value},`)
+        end
+        local childBlock:{string} = {}
+        for _, child in ins:GetChildren() do
+            local code = visit(child, indent + 2)
+            if code then
+                table.insert(childBlock, code .. ",")
+            end
+        end
+
+        if #childBlock > 0 then 
+            if #props > 0 then
+                table.insert(block, "")
+            end
+            table.insert(block, `{inner}[Children] = \{`)
+            for _, cCode in childBlock do
+                table.insert(block, cCode)
+            end
+            table.insert(block, `{inner}\},`)
+        end
+        table.insert(block, string.format("%s}", ind))
+        mprint(`Done with {ins.Name}/{cn}!`)
+        return table.concat(block, "\n")
+    end
+
+    local rootCode = visit(root, 1)
+    if rootCode then
+        table.insert(lines, "local function Generate(scope: Fusion.Scope<typeof(Fusion)>)")
+        table.insert(lines, "\treturn " .. rootCode:sub(2))
+        table.insert(lines, "end")
+        table.insert(lines, "")
+        table.insert(lines, "return Generate")
+        mprint("Successfully generated Fusion!")
+    else
+        mprint("Couldn't scan given data.")
+    end
+    return table.concat(lines, "\n")
+end
+
+local function genReact(root:Instance, gen:boolean):string
+    local lines:{string} = {}
+    mprint("Starting React..")
+    if gen then
+        mprint("Preparing..")
+        table.insert(lines, "local React = require(???) --your path here!")
+        table.insert(lines, "")
+    end
+
+    local function visit(ins: Instance, indent:number):string?
+        local cn = ins.ClassName
+        mprint(`Scanning {ins.Name}/{cn}..`)
+
+        if not cMap[cn] then
+            mprint(`{cn} type of UI isn't supported yet:(`)
+            return nil
+        end
+
+        local ind = string.rep("\t", indent)
+		local inner = string.rep("\t", indent + 1)
+		local block: { string } = {}
+
+		local props = getChangedProps(ins)
+		local childBlocks: { string } = {}
+		for _, child in ins:GetChildren() do
+			local code = visit(child, indent + 1)
+			if code then
+				table.insert(childBlocks, code .. ",")
+			end
+		end
+
+		if #props == 0 and #childBlocks == 0 then
+			return string.format("%sReact.createElement(%q)", ind, cn)
+		end
+
+		table.insert(block, string.format("%sReact.createElement(%q, {", ind, cn))
+		for _, prop in props do
+			table.insert(block, `{inner}{prop.name} = {prop.value},`)
+		end
+
+		if #childBlocks == 0 then
+			table.insert(block, string.format("%s})", ind))
+		else
+			table.insert(block, string.format("%s}, {", ind))
+			for _, cCode in childBlocks do
+				table.insert(block, cCode)
+			end
+			table.insert(block, string.format("%s})", ind))
+		end
+
+        mprint(`Done with {ins.Name}/{cn}!`)
+		return table.concat(block, "\n")
+	end
+
+    local rootCode = visit(root, 1)
+	if rootCode then
+		table.insert(lines, "local function Generate()")
+		table.insert(lines, "\treturn " .. rootCode:sub(2))
+		table.insert(lines, "end")
+		table.insert(lines, "")
+		table.insert(lines, "return Generate")
+        mprint("Successfully generated React!")
+    else
+        mprint("Couldn't scan given data.")
+	end
+
+	return table.concat(lines, "\n")
+end
+
 local actions:{} = {
     ["Pure"] = genPure,
     ["Vide"] = genVide,
-    ["Flux"] = genFlux
+    ["Flux"] = genFlux,
+    ["React"] = genReact,
+    ["Fusion"] = genFus
 }
 
 function drivescan.Scan(Root:ScreenGui, Type:Mode):string
@@ -397,4 +531,3 @@ function drivescan.Cache():()
 end
 
 return drivescan
---line for it to be 400 lines:b
